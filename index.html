@@ -431,11 +431,6 @@ function generateMaze(){
         ()=>Array(COLS).fill(1)
     );
 
-    /*
-       Randomized DFS creates the base connected maze.
-       Using larger step size for wider corridors.
-    */
-
     const stack=[[2,2]];
 
     grid[2][2]=0;
@@ -466,7 +461,6 @@ function generateMaze(){
                 grid[ny][nx]
             ){
 
-                // Carve path between cells
                 grid[y+dy/3][x+dx/3]=0;
                 grid[y+2*dy/3][x+2*dx/3]=0;
                 grid[ny][nx]=0;
@@ -486,10 +480,6 @@ function generateMaze(){
     }
 
 
-    /*
-       OPEN UP THE MAZE - Create wider rooms and chambers
-    */
-
     const extraLoops=Math.floor(COLS*ROWS*.18);
 
     for(let i=0;i<extraLoops;i++){
@@ -499,7 +489,6 @@ function generateMaze(){
 
         if(!grid[y][x]) continue;
 
-        // Check if surrounded by open space
         let openCount=0;
         for(let yy=y-1;yy<=y+1;yy++){
             for(let xx=x-1;xx<=x+1;xx++){
@@ -514,10 +503,6 @@ function generateMaze(){
     }
 
 
-    /*
-       Create larger open chambers and rooms
-    */
-
     const chambers=Math.floor(COLS*ROWS*.08);
 
     for(let i=0;i<chambers;i++){
@@ -525,7 +510,6 @@ function generateMaze(){
         const x=randi(3,COLS-4);
         const y=randi(3,ROWS-4);
 
-        // Create 3x3 or 4x4 chamber
         const size=randi(3,4);
 
         let canCreate=true;
@@ -665,7 +649,6 @@ function makeFloor(){
 
 function makeRoom(){
 
-    // Generate NEW maze for every room
     generateMaze();
 
     enemies=[];
@@ -685,15 +668,11 @@ function makeRoom(){
     player.x=start.x;
     player.y=start.y;
 
-    // Boss room every 10 floors
     const isBoss=floor%10===0;
 
-    // Difficulty scales every 10 total rooms
     const difficultyTier=Math.floor(totalRooms/10);
     const difficultyMultiplier=1+difficultyTier*0.15;
 
-
-    /* BOSS ROOM */
 
     if(isBoss){
 
@@ -713,11 +692,8 @@ function makeRoom(){
 
     }
 
-    /* NORMAL ROOM */
-
     else{
 
-        // 10% more enemies - base * 1.1 * difficulty multiplier
         const baseEnemies = 3+floor+Math.floor(roomNum/2);
         const n=Math.min(
             Math.floor(baseEnemies * 1.1 * difficultyMultiplier),
@@ -759,7 +735,6 @@ function makeRoom(){
 
             }[type];
 
-            // Apply difficulty scaling
             const scaledStats={
                 hp:Math.ceil(b.hp*difficultyMultiplier),
                 speed:Math.ceil(b.speed*difficultyMultiplier),
@@ -854,7 +829,6 @@ function updateShop(){
 
     document.getElementById("shopGold").textContent=gold;
     
-    // Update button text with current prices
     document.getElementById("healBtn").textContent = Math.round(shopPrices.heal) + " Gold";
     document.getElementById("damageBtn").textContent = Math.round(shopPrices.damage) + " Gold";
     document.getElementById("healthBtn").textContent = Math.round(shopPrices.health) + " Gold";
@@ -914,7 +888,6 @@ function buy(kind){
         gold-=price;
         shopPrices.shotspeed = Math.round(shopPrices.shotspeed * 1.5);
 
-        // Reduce cooldown by 5% (multiply by 0.95)
         player.attackCooldown*=0.95;
 
     }
@@ -945,20 +918,8 @@ function continueFromShop(){
     document.getElementById("shop")
         .classList.add("hidden");
 
-
-    /*
-       Move to the next room only AFTER the shop
-       has been completed.
-    */
-
     roomNum++;
     totalRooms++;
-
-    /*
-       Room 10 is the final room of a floor.
-       After the shop following room 10,
-       begin the next floor.
-    */
 
     if(roomNum>10){
 
@@ -1048,3 +1009,396 @@ function update(dt){
             player.y-e.y,
             player.x-e.x
         );
+
+        const isArcher=e.type==="archer";
+
+        if(d<250 && e.shoot<0 && d>50){
+
+            e.shoot=isArcher?1.4:0.8;
+
+            projectiles.push({
+
+                x:e.x,
+                y:e.y,
+
+                vx:Math.cos(a)*300,
+                vy:Math.sin(a)*300,
+
+                r:5,
+                damage:e.damage,
+                life:2,
+                friendly:false
+
+            });
+
+        }
+
+
+        if(d>100){
+
+            moveEntity(e,Math.cos(a)*e.speed*dt,Math.sin(a)*e.speed*dt);
+
+        }
+
+    }
+
+
+    for(let i=projectiles.length-1;i>=0;i--){
+
+        const p=projectiles[i];
+
+        p.x+=p.vx*dt;
+        p.y+=p.vy*dt;
+
+        p.life-=dt;
+
+        if(isWall(p.x,p.y,p.r) || p.life<0){
+
+            projectiles.splice(i,1);
+
+            continue;
+
+        }
+
+
+        if(p.friendly){
+
+            for(let j=0;j<enemies.length;j++){
+
+                const e=enemies[j];
+
+                if(dist(p,e)<p.r+e.r){
+
+                    e.hp-=p.damage;
+                    e.hit=0.1;
+
+                    projectiles.splice(i,1);
+
+                    if(e.hp<=0){
+
+                        enemies.splice(j,1);
+
+                        kills++;
+                        gold+=randi(20,40);
+
+                        burst(e.x,e.y,6);
+
+                    }
+
+                    break;
+
+                }
+
+            }
+
+        }else if(p.friendly===false){
+
+            if(dist(p,player)<p.r+player.r){
+
+                player.hp-=p.damage;
+
+                projectiles.splice(i,1);
+
+            }
+
+        }
+
+    }
+
+
+    for(let i=particles.length-1;i>=0;i--){
+
+        const p=particles[i];
+
+        p.x+=p.vx*dt;
+        p.y+=p.vy*dt;
+
+        p.vy+=300*dt;
+
+        p.life-=dt;
+
+        if(p.life<0){
+            particles.splice(i,1);
+        }
+
+    }
+
+
+    for(let i=goldPickups.length-1;i>=0;i--){
+
+        const g=goldPickups[i];
+
+        const d=dist(g,player);
+
+        if(d<50){
+
+            gold+=g.amount;
+
+            goldPickups.splice(i,1);
+
+        }else{
+
+            g.x+=Math.cos(g.a)*g.speed*dt;
+            g.y+=Math.sin(g.a)*g.speed*dt;
+
+            g.speed=Math.max(0,g.speed-100*dt);
+
+        }
+
+    }
+
+
+    if(boss){
+
+        const d=dist(boss,player);
+
+        const a=Math.atan2(
+            player.y-boss.y,
+            player.x-boss.x
+        );
+
+        if(boss.shoot<0){
+
+            boss.shoot=0.6;
+
+            for(let i=0;i<8;i++){
+
+                const angle=Math.PI*2*i/8+Math.random()*0.2;
+
+                projectiles.push({
+
+                    x:boss.x,
+                    y:boss.y,
+
+                    vx:Math.cos(angle)*320,
+                    vy:Math.sin(angle)*320,
+
+                    r:5,
+                    damage:boss.damage,
+                    life:2,
+                    friendly:false
+
+                });
+
+            }
+
+        }
+
+        if(d>100){
+
+            moveEntity(boss,Math.cos(a)*boss.speed*dt,Math.sin(a)*boss.speed*dt);
+
+        }
+
+    }
+
+
+    if(!boss && enemies.length===0){
+
+        if(totalRooms%5===0 && !shopOpen){
+
+            openShop();
+
+        }else{
+
+            roomNum++;
+            totalRooms++;
+
+            if(roomNum>10){
+
+                floor++;
+                roomNum=1;
+                makeFloor();
+
+            }else{
+
+                makeRoom();
+
+            }
+
+        }
+
+    }
+
+
+    if(player.hp<=0){
+
+        running=false;
+
+    }
+
+}
+
+
+/* =========================
+   RENDER
+========================= */
+
+function render(){
+
+    ctx.fillStyle="#111";
+    ctx.fillRect(0,0,W,H);
+
+    ctx.fillStyle="rgba(255,107,53,0.1)";
+    for(let y=0;y<ROWS;y++){
+        for(let x=0;x<COLS;x++){
+            if(grid[y][x]){
+                ctx.fillRect(x*T,y*T,T,T);
+            }
+        }
+    }
+
+
+    for(const p of particles){
+
+        ctx.fillStyle=`rgba(255,200,100,${p.life})`;
+        ctx.fillRect(p.x-2,p.y-2,4,4);
+
+    }
+
+
+    for(const p of projectiles){
+
+        ctx.fillStyle=p.friendly?"#4a9eff":"#ff6b6b";
+        ctx.fillRect(p.x-p.r,p.y-p.r,p.r*2,p.r*2);
+
+    }
+
+
+    for(const e of enemies){
+
+        const hpPercent=Math.max(0,e.hp/e.maxhp);
+
+        ctx.fillStyle=`hsl(0,${hpPercent*100}%,50%)`;
+        ctx.beginPath();
+        ctx.arc(e.x,e.y,e.r,0,Math.PI*2);
+        ctx.fill();
+
+        ctx.fillStyle="#fff";
+        ctx.font="10px Arial";
+        ctx.textAlign="center";
+        ctx.fillText("⚔️",e.x,e.y+3);
+
+    }
+
+
+    if(boss){
+
+        const hpPercent=Math.max(0,boss.hp/boss.maxhp);
+
+        ctx.fillStyle=`hsl(40,100%,${50+hpPercent*30}%)`;
+        ctx.beginPath();
+        ctx.arc(boss.x,boss.y,boss.r,0,Math.PI*2);
+        ctx.fill();
+
+        ctx.fillStyle="#000";
+        ctx.font="bold 16px Arial";
+        ctx.textAlign="center";
+        ctx.fillText("👑",boss.x,boss.y+6);
+
+    }
+
+
+    for(const g of goldPickups){
+
+        ctx.fillStyle="#f3c969";
+        ctx.beginPath();
+        ctx.arc(g.x,g.y,3,0,Math.PI*2);
+        ctx.fill();
+
+    }
+
+
+    ctx.fillStyle="#4a9eff";
+    ctx.beginPath();
+    ctx.arc(player.x,player.y,player.r,0,Math.PI*2);
+    ctx.fill();
+
+
+    ctx.fillStyle="#fff";
+    ctx.font="12px Arial";
+    ctx.textAlign="center";
+    ctx.fillText("🧙",player.x,player.y+3);
+
+
+    ctx.fillStyle="#f3c969";
+    ctx.font="16px Arial";
+    ctx.textAlign="left";
+    ctx.fillText(`Floor: ${floor} | Room: ${roomNum}/10 | Gold: ${gold} | HP: ${Math.max(0,Math.floor(player.hp))}/${Math.floor(player.maxhp)}`,10,20);
+
+}
+
+
+/* =========================
+   GAME LOOP
+========================= */
+
+function frame(now){
+
+    const dt=Math.min((now-last)/1000,0.016);
+    last=now;
+
+    if(running){
+
+        update(dt);
+        render();
+
+    }
+
+    requestAnimationFrame(frame);
+
+}
+
+
+/* =========================
+   INITIALIZE
+========================= */
+
+function startGame(){
+
+    document.getElementById("menu").classList.add("hidden");
+
+    floor=1;
+    gold=0;
+    kills=0;
+    roomsSurvived=0;
+    totalRooms=1;
+    roomNum=1;
+
+    player={
+        x:W/2,
+        y:H/2,
+        r:12,
+        hp:100,
+        maxhp:100,
+        speed:200,
+        damage:25,
+        attack:0,
+        attackCooldown:0.2,
+        inv:0
+    };
+
+    enemies=[];
+    projectiles=[];
+    particles=[];
+    goldPickups=[];
+
+    makeFloor();
+
+    running=true;
+
+}
+
+document.getElementById("start").onclick=startGame;
+document.getElementById("continueShop").onclick=continueFromShop;
+document.getElementById("restart").onclick=()=>{
+    document.getElementById("death").classList.add("hidden");
+    startGame();
+};
+
+requestAnimationFrame(frame);
+
+</script>
+
+</body>
+</html>
