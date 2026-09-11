@@ -268,8 +268,8 @@ button:disabled{
 </div>
 
 <div id="help">
-    Clear every enemy in a room, then find the stairs.
-    Shops appear after every 5th cleared room. Boss rooms every 10 floors!
+    Collect gold and clear every enemy in a room, then find the stairs.
+    Shops appear after every 5th cleared room. Difficulty increases every 10 rooms!
 </div>
 
 <script>
@@ -299,6 +299,7 @@ let floor=1;
 let gold=0;
 let kills=0;
 let roomsSurvived=0;
+let totalRooms=1;
 let roomNum=1;
 
 let grid=[];
@@ -307,6 +308,7 @@ let player;
 let enemies=[];
 let projectiles=[];
 let particles=[];
+let goldPickups=[];
 
 let stairs=null;
 let chest=null;
@@ -643,6 +645,7 @@ function makeRoom(){
     enemies=[];
     projectiles=[];
     particles=[];
+    goldPickups=[];
 
     stairs=null;
     chest=null;
@@ -658,6 +661,10 @@ function makeRoom(){
 
     // Boss room every 10 floors
     const isBoss=floor%10===0;
+
+    // Difficulty scales every 10 total rooms
+    const difficultyTier=Math.floor(totalRooms/10);
+    const difficultyMultiplier=1+difficultyTier*0.15;
 
 
     /* BOSS ROOM */
@@ -684,10 +691,10 @@ function makeRoom(){
 
     else{
 
-        // 10% more enemies - base * 1.1
+        // 10% more enemies - base * 1.1 * difficulty multiplier
         const baseEnemies = 3+floor+Math.floor(roomNum/2);
         const n=Math.min(
-            Math.floor(baseEnemies * 1.1),
+            Math.floor(baseEnemies * 1.1 * difficultyMultiplier),
             16
         );
 
@@ -726,14 +733,22 @@ function makeRoom(){
 
             }[type];
 
+            // Apply difficulty scaling
+            const scaledStats={
+                hp:Math.ceil(b.hp*difficultyMultiplier),
+                speed:Math.ceil(b.speed*difficultyMultiplier),
+                r:b.r,
+                damage:Math.ceil(b.damage*difficultyMultiplier)
+            };
+
             enemies.push({
                 x:pos.x,
                 y:pos.y,
                 type,
-                ...b,
-                maxhp:b.hp,
+                ...scaledStats,
+                maxhp:scaledStats.hp,
                 hit:0,
-                shoot:rand(1,2)
+                shoot:rand(0.8,2)
             });
 
         }
@@ -887,6 +902,7 @@ function continueFromShop(){
     */
 
     roomNum++;
+    totalRooms++;
 
     /*
        Room 10 is the final room of a floor.
@@ -1015,7 +1031,7 @@ function update(dt){
 
                 });
 
-                e.shoot=e.shoot<=0?0.9:e.shoot;
+                e.shoot=0.9;
 
             }
 
@@ -1075,7 +1091,39 @@ function update(dt){
         }
 
 
-        /* MELEE - Always moves toward player */
+        /* BRUTE - Always moves toward player */
+
+        else if(e.type==="brute"){
+
+            // Constantly move toward player
+            moveEntity(
+                e,
+                Math.cos(a)*e.speed*dt,
+                Math.sin(a)*e.speed*dt
+            );
+
+
+            if(
+                d<e.r+player.r+4 &&
+                e.hit<=0 &&
+                player.inv<=0
+            ){
+
+                player.hp-=e.damage;
+
+                player.inv=.65;
+
+                burst(
+                    player.x,
+                    player.y,
+                    8
+                );
+
+            }
+
+        }
+
+        /* GOBLIN - Always moves toward player */
 
         else{
 
@@ -1104,6 +1152,29 @@ function update(dt){
                 );
 
             }
+
+        }
+
+    }
+
+
+    /* GOLD PICKUPS */
+
+    for(
+        let i=goldPickups.length-1;
+        i>=0;
+        i--
+    ){
+
+        const gp=goldPickups[i];
+
+        const d=dist(player,gp);
+
+        if(d<30){
+
+            gold+=gp.amount;
+
+            goldPickups.splice(i,1);
 
         }
 
@@ -1161,8 +1232,13 @@ function update(dt){
 
                     if(enemies[j].hp<=0){
 
-                        gold+=
-                            randi(8,20)+floor;
+                        const reward=randi(8,20)+floor;
+
+                        goldPickups.push({
+                            x:enemies[j].x,
+                            y:enemies[j].y,
+                            amount:reward
+                        });
 
                         kills++;
 
@@ -1204,7 +1280,11 @@ function update(dt){
 
                 if(boss.hp<=0){
 
-                    gold+=200+floor*40;
+                    goldPickups.push({
+                        x:boss.x,
+                        y:boss.y,
+                        amount:200+floor*40
+                    });
 
                     kills++;
 
@@ -1307,7 +1387,11 @@ function update(dt){
         const reward=
             30+randi(0,35)+floor*5;
 
-        gold+=reward;
+        goldPickups.push({
+            x:chest.x,
+            y:chest.y,
+            amount:reward
+        });
 
         player.maxhp+=8;
 
@@ -1336,7 +1420,6 @@ function update(dt){
 
         roomsSurvived++;
 
-
         /*
            Every 5th room opens the shop.
 
@@ -1351,6 +1434,7 @@ function update(dt){
         }else{
 
             roomNum++;
+            totalRooms++;
 
             if(roomNum>10){
 
@@ -1559,6 +1643,41 @@ function draw(){
             stairs.x,
             stairs.y+6
         );
+
+    }
+
+
+    /* GOLD PICKUPS */
+
+    for(const gp of goldPickups){
+
+        ctx.fillStyle="#f3c969";
+
+        ctx.beginPath();
+
+        ctx.arc(
+            gp.x,
+            gp.y,
+            6,
+            0,
+            Math.PI*2
+        );
+
+        ctx.fill();
+
+        ctx.fillStyle="#d4a138";
+
+        ctx.beginPath();
+
+        ctx.arc(
+            gp.x,
+            gp.y,
+            3,
+            0,
+            Math.PI*2
+        );
+
+        ctx.fill();
 
     }
 
@@ -1850,6 +1969,7 @@ function start(){
     gold=0;
     kills=0;
     roomsSurvived=0;
+    totalRooms=1;
     roomNum=1;
 
     player={
