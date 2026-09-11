@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dungeon Crawler</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <h1>🏰 Dungeon Crawler</h1>
+            <div class="stats-bar">
+                <span>HP: <span id="hp">100</span>/<span id="maxHp">100</span></span>
+                <span>Level: <span id="level">1</span></span>
+                <span>XP: <span id="xp">0</span>/<span id="xpNeeded">100</span></span>
+                <span>Gold: <span id="gold">0</span></span>
+            </div>
+        </div>
+
+        <div class="game-main">
+            <div class="game-view">
+                <div id="gameScreen" class="game-screen">
+                    <div id="dungeonMap" class="dungeon-map"></div>
+                </div>
+            </div>
+
+            <div class="sidebar">
+                <div class="panel">
+                    <h3>Inventory</h3>
+                    <div id="inventory" class="inventory-list"></div>
+                </div>
+
+                <div class="panel">
+                    <h3>Combat Log</h3>
+                    <div id="combatLog" class="combat-log"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button id="moveUp" class="control-btn">↑ Up</button>
+            <div>
+                <button id="moveLeft" class="control-btn">← Left</button>
+                <button id="moveDown" class="control-btn">↓ Down</button>
+                <button id="moveRight" class="control-btn">→ Right</button>
+            </div>
+            <div>
+                <button id="attackBtn" class="control-btn action-btn">⚔️ Attack</button>
+                <button id="useItemBtn" class="control-btn action-btn">🧪 Use Item</button>
+                <button id="restBtn" class="control-btn action-btn">😴 Rest</button>
+            </div>
+        </div>
+
+        <div id="modal" class="modal hidden">
+            <div class="modal-content">
+                <span id="modalClose" class="close">&times;</span>
+                <h2 id="modalTitle"></h2>
+                <div id="modalBody"></div>
+                <div id="modalActions" class="modal-actions"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
