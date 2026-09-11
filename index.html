@@ -229,6 +229,14 @@ button:disabled{
                 </button>
             </div>
 
+            <div class="shop-item">
+                <h3>🔥 Shot Speed</h3>
+                <p>Increase fire rate by 5%.</p>
+                <button onclick="window.buy('shotspeed')">
+                    40 Gold
+                </button>
+            </div>
+
         </div>
 
         <button id="continueShop">
@@ -261,7 +269,7 @@ button:disabled{
 
 <div id="help">
     Clear every enemy in a room, then find the stairs.
-    Shops appear after every 5th cleared room.
+    Shops appear after every 5th cleared room. Boss rooms every 10 floors!
 </div>
 
 <script>
@@ -648,7 +656,8 @@ function makeRoom(){
     player.x=start.x;
     player.y=start.y;
 
-    const isBoss=roomNum===10;
+    // Boss room every 10 floors
+    const isBoss=floor%10===0;
 
 
     /* BOSS ROOM */
@@ -659,11 +668,11 @@ function makeRoom(){
             x:W-T*3,
             y:H-T*3,
             r:28,
-            hp:420+floor*80,
-            maxhp:420+floor*80,
-            speed:65,
-            damage:20+floor*2,
-            shoot:1.2,
+            hp:520+floor*100,
+            maxhp:520+floor*100,
+            speed:75,
+            damage:25+floor*3,
+            shoot:0.9,
             hit:0
         };
 
@@ -675,9 +684,11 @@ function makeRoom(){
 
     else{
 
+        // 10% more enemies - base * 1.1
+        const baseEnemies = 3+floor+Math.floor(roomNum/2);
         const n=Math.min(
-            3+floor+Math.floor(roomNum/2),
-            14
+            Math.floor(baseEnemies * 1.1),
+            16
         );
 
         for(let i=0;i<n;i++){
@@ -754,7 +765,7 @@ function attack(){
         return;
     }
 
-    player.attack=.22;
+    player.attack=player.attackCooldown;
 
     const a=Math.atan2(
         mouse.y-player.y,
@@ -840,6 +851,15 @@ function buy(kind){
         gold-=50;
 
         player.speed+=25;
+
+    }
+
+    if(kind==="shotspeed" && gold>=40){
+
+        gold-=40;
+
+        // Reduce cooldown by 5% (multiply by 0.95)
+        player.attackCooldown*=0.95;
 
     }
 
@@ -995,7 +1015,7 @@ function update(dt){
 
                 });
 
-                e.shoot=1.1;
+                e.shoot=e.shoot<=0?0.9:e.shoot;
 
             }
 
@@ -1184,7 +1204,7 @@ function update(dt){
 
                 if(boss.hp<=0){
 
-                    gold+=150+floor*30;
+                    gold+=200+floor*40;
 
                     kills++;
 
@@ -1699,14 +1719,14 @@ function draw(){
     /* BOSS TEXT */
 
     if(
-        roomNum===10 &&
+        floor%10===0 &&
         boss
     ){
 
         ctx.fillStyle="#e77";
 
         ctx.fillText(
-            "⚠ BOSS ROOM",
+            "⚠ MEGA BOSS - FLOOR "+floor,
             12,
             42
         );
@@ -1846,6 +1866,7 @@ function start(){
 
         speed:170,
 
+        attackCooldown:0.22,
         attack:0,
         inv:0
 
