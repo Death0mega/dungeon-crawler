@@ -12,6 +12,16 @@ const ENEMY_TYPES = {
     dragon: { hp: 100, dmg: 15, xp: 200, loot: 100, emoji: '🐉' }
 };
 
+// Shop price tracking
+const shopPrices = {
+    heal: 25,
+    damage: 60,
+    health: 60,
+    speed: 50,
+    shotspeed: 40,
+    armor: 45
+};
+
 // Game State
 const gameState = {
     floor: 1,
