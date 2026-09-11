@@ -1,1404 +1,970 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>The Endless Dungeon</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Endless Dungeon</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-<style>
-*{box-sizing:border-box}
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #0f3460 100%);
+            color: #e0e0e0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
 
-body{
-    margin:0;
-    background:#111;
-    color:#eee;
-    font-family:Arial,sans-serif;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    min-height:100vh
-}
+        .container {
+            width: 100%;
+            max-width: 1400px;
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
 
-#top{
-    width:min(1000px,96vw);
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    padding:12px 4px 8px
-}
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            flex: 1;
+            min-width: 400px;
+        }
 
-h1{
-    margin:0;
-    font-size:24px;
-    color:#f3c969
-}
+        .header {
+            background: linear-gradient(135deg, #533483 0%, #2d1b4e 100%);
+            border: 2px solid #ff6b35;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
+        }
 
-#stats{
-    font-size:14px;
-    line-height:1.6;
-    text-align:right
-}
+        .header h1 {
+            font-size: 32px;
+            color: #ff6b35;
+            margin-bottom: 10px;
+        }
 
-#game{
-    position:relative;
-    width:min(1000px,96vw);
-    aspect-ratio:16/9;
-    background:#080808;
-    border:2px solid #333;
-    overflow:hidden
-}
+        .game-board {
+            background: #0f0f1e;
+            border: 2px solid #ff6b35;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
+        }
 
-canvas{
-    width:100%;
-    height:100%;
-    display:block;
-    image-rendering:pixelated
-}
+        #dungeonMap {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 4px;
+            margin-bottom: 20px;
+        }
 
-#help{
-    padding:8px;
-    color:#aaa;
-    font-size:13px;
-    text-align:center
-}
+        .tile {
+            aspect-ratio: 1;
+            background: #1a1a2e;
+            border: 1px solid #444;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: bold;
+            min-width: 30px;
+            cursor: default;
+            transition: all 0.1s;
+        }
 
-.overlay{
-    position:absolute;
-    inset:0;
-    background:rgba(0,0,0,.82);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    text-align:center;
-    z-index:10
-}
+        .tile.wall {
+            background: #2a2a3e;
+            color: #666;
+        }
 
-.panel{
-    background:#181818;
-    border:1px solid #555;
-    border-radius:10px;
-    padding:26px;
-    width:min(460px,90%);
-    box-shadow:0 12px 50px #000
-}
+        .tile.floor {
+            background: #1a1a2e;
+            border-color: #333;
+        }
 
-.panel.shop-panel{
-    width:min(750px,95%);
-}
+        .tile.player {
+            background: linear-gradient(135deg, #4a9eff, #357abd);
+            color: #fff;
+            border-color: #4a9eff;
+            box-shadow: 0 0 8px rgba(74, 158, 255, 0.6);
+        }
 
-.panel h2{
-    color:#f3c969;
-    margin-top:0
-}
+        .tile.enemy {
+            background: linear-gradient(135deg, #ff3333, #cc0000);
+            color: #fff;
+            border-color: #ff3333;
+            box-shadow: 0 0 8px rgba(255, 51, 51, 0.6);
+        }
 
-.shop-items{
-    display:grid;
-    grid-template-columns:1fr 1fr 1fr;
-    gap:10px;
-    margin:18px 0
-}
+        .tile.enemy.goblin {
+            background: linear-gradient(135deg, #a83d3d, #6b2424);
+        }
 
-.shop-item{
-    background:#222;
-    border:1px solid #444;
-    border-radius:8px;
-    padding:14px 8px
-}
+        .tile.enemy.orc {
+            background: linear-gradient(135deg, #d63333, #8b0000);
+        }
 
-.shop-item h3{
-    margin:4px 0 8px;
-    color:#f3c969;
-    font-size:14px
-}
+        .tile.enemy.skeleton {
+            background: linear-gradient(135deg, #cccccc, #666666);
+            color: #000;
+        }
 
-.shop-item p{
-    font-size:12px;
-    color:#bbb;
-    min-height:30px;
-    margin:4px 0
-}
+        .tile.enemy.dragon {
+            background: linear-gradient(135deg, #ffaa00, #ff6600);
+            font-size: 24px;
+        }
 
-.shop-item button{
-    width:100%;
-    margin:0;
-    padding:8px 10px;
-    font-size:12px
-}
+        .tile.potion {
+            background: linear-gradient(135deg, #ff6b9d, #c21f5b);
+            color: #fff;
+        }
 
-button{
-    border:0;
-    border-radius:7px;
-    padding:11px 18px;
-    background:#d49b3f;
-    color:#111;
-    font-weight:bold;
-    cursor:pointer;
-    margin:5px
-}
+        .tile.stairs {
+            background: linear-gradient(135deg, #ffd700, #ffed4e);
+            color: #333;
+            box-shadow: 0 0 8px rgba(255, 215, 0, 0.6);
+        }
 
-button:hover{
-    filter:brightness(1.12)
-}
+        .tile.chest {
+            background: linear-gradient(135deg, #d4a574, #8b6f47);
+            color: #fff;
+        }
 
-button:disabled{
-    opacity:.45;
-    cursor:not-allowed
-}
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
 
-.hidden{
-    display:none
-}
+        button {
+            background: linear-gradient(135deg, #2d5a8c, #1a3a5c);
+            color: #4a9eff;
+            border: 2px solid #4a9eff;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
 
-.shop-gold{
-    color:#f3c969;
-    font-weight:bold;
-    margin-bottom:12px
-}
-</style>
+        button:hover {
+            background: linear-gradient(135deg, #4a7aac, #2a5a7c);
+            box-shadow: 0 0 10px rgba(74, 158, 255, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .action-btn {
+            color: #ff6b35 !important;
+            border-color: #ff6b35 !important;
+            background: linear-gradient(135deg, #5c3a1f, #3a2510) !important;
+        }
+
+        .action-btn:hover {
+            background: linear-gradient(135deg, #7c4a2f, #5a3a20) !important;
+            box-shadow: 0 0 10px rgba(255, 107, 53, 0.5) !important;
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            min-width: 300px;
+            flex: 1;
+        }
+
+        .panel {
+            background: linear-gradient(135deg, #1a1a2e, #0f3460);
+            border: 2px solid #ff6b35;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .panel h3 {
+            color: #ff6b35;
+            margin-bottom: 10px;
+            font-size: 14px;
+            text-transform: uppercase;
+            border-bottom: 1px solid #ff6b35;
+            padding-bottom: 8px;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            font-size: 13px;
+            border-bottom: 1px solid rgba(255, 107, 53, 0.2);
+        }
+
+        .stat-label {
+            color: #aaa;
+        }
+
+        .stat-value {
+            color: #4a9eff;
+            font-weight: bold;
+        }
+
+        .log-entry {
+            padding: 4px 0;
+            border-bottom: 1px solid rgba(255, 107, 53, 0.2);
+            color: #e0e0e0;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .log-entry.damage {
+            color: #ff6b6b;
+        }
+
+        .log-entry.heal {
+            color: #6bff6b;
+        }
+
+        .log-entry.victory {
+            color: #ffd700;
+        }
+
+        .log-entry.level-up {
+            color: #ff6b9d;
+            font-weight: bold;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            animation: fadeIn 0.3s;
+        }
+
+        .modal.hidden {
+            display: none;
+        }
+
+        .modal:not(.hidden) {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #1a1a2e, #0f3460);
+            border: 3px solid #ff6b35;
+            border-radius: 8px;
+            padding: 30px;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 0 30px rgba(255, 107, 53, 0.5);
+            animation: slideUp 0.3s;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        #modalTitle {
+            color: #ff6b35;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+
+        #modalBody {
+            color: #e0e0e0;
+            margin-bottom: 20px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .modal-btn {
+            background: linear-gradient(135deg, #2d5a8c, #1a3a5c) !important;
+            color: #4a9eff !important;
+            border: 2px solid #4a9eff !important;
+            padding: 10px 20px !important;
+            border-radius: 5px !important;
+            cursor: pointer !important;
+            font-weight: bold !important;
+            transition: all 0.3s !important;
+        }
+
+        .modal-btn:hover {
+            background: linear-gradient(135deg, #4a7aac, #2a5a7c) !important;
+            box-shadow: 0 0 10px rgba(74, 158, 255, 0.5) !important;
+        }
+
+        .modal-btn.primary {
+            color: #ff6b35 !important;
+            border-color: #ff6b35 !important;
+            background: linear-gradient(135deg, #5c3a1f, #3a2510) !important;
+        }
+
+        .modal-btn.primary:hover {
+            background: linear-gradient(135deg, #7c4a2f, #5a3a20) !important;
+            box-shadow: 0 0 10px rgba(255, 107, 53, 0.5) !important;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #ff6b35;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #ffaa6b;
+        }
+
+        @media (max-width: 1024px) {
+            .container {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                min-width: 100%;
+            }
+
+            .main-content {
+                min-width: 100%;
+            }
+        }
+    </style>
 </head>
-
 <body>
+    <div class="container">
+        <div class="main-content">
+            <div class="header">
+                <h1>🏰 The Endless Dungeon</h1>
+                <p style="font-size: 12px; color: #aaa;">Explore a procedurally generated dungeon, defeat monsters, collect gold and descend as far as you can.</p>
+            </div>
 
-<div id="top">
-    <h1>🏰 The Endless Dungeon</h1>
-    <div id="stats"></div>
-</div>
-
-<div id="game">
-
-<canvas id="c" width="1000" height="562"></canvas>
-
-<!-- MAIN MENU -->
-<div id="menu" class="overlay">
-    <div class="panel">
-        <h2>The Endless Dungeon</h2>
-
-        <p>
-            Explore a procedurally generated dungeon,
-            defeat monsters, collect gold and descend
-            as far as you can.
-        </p>
-
-        <p>
-            <b>WASD / Arrow Keys</b> to move<br>
-            <b>Mouse</b> to aim<br>
-            <b>Left Click / Space</b> to attack
-        </p>
-
-        <button id="start">Start Game</button>
-    </div>
-</div>
-
-<!-- SHOP -->
-<div id="shop" class="overlay hidden">
-    <div class="panel shop-panel">
-
-        <h2>🛒 Dungeon Shop</h2>
-
-        <p>
-            You've cleared another milestone!
-        </p>
-
-        <div class="shop-gold">
-            💰 Gold: <span id="shopGold">0</span>
+            <div class="game-board">
+                <div id="dungeonMap"></div>
+                <div class="controls">
+                    <button id="moveUp" class="action-btn">⬆️ Up</button>
+                    <button id="moveLeft" class="action-btn">⬅️ Left</button>
+                    <button id="moveDown" class="action-btn">⬇️ Down</button>
+                    <button id="moveRight" class="action-btn">➡️ Right</button>
+                    <button id="attackBtn" class="action-btn">⚔️ Attack</button>
+                    <button id="useItemBtn">🧪 Use Item</button>
+                    <button id="restBtn">😴 Rest</button>
+                </div>
+            </div>
         </div>
 
-        <div class="shop-items">
-
-            <div class="shop-item">
-                <h3>❤️ Heal</h3>
-                <p>Restore 50 HP.</p>
-                <button id="healBtn" onclick="window.buy('heal')">
-                    25 Gold
-                </button>
+        <div class="sidebar">
+            <div class="panel">
+                <h3>📊 Stats</h3>
+                <div class="stat-item">
+                    <span class="stat-label">Floor:</span>
+                    <span class="stat-value" id="floor">1</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Room:</span>
+                    <span class="stat-value" id="room">0/10</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">HP:</span>
+                    <span class="stat-value"><span id="hp">100</span>/<span id="maxHp">100</span></span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Level:</span>
+                    <span class="stat-value" id="level">1</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">XP:</span>
+                    <span class="stat-value"><span id="xp">0</span>/<span id="xpNeeded">100</span></span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Gold:</span>
+                    <span class="stat-value" id="gold">0</span>
+                </div>
             </div>
 
-            <div class="shop-item">
-                <h3>⚔️ Damage</h3>
-                <p>Increase attack damage by 10.</p>
-                <button id="damageBtn" onclick="window.buy('damage')">
-                    60 Gold
-                </button>
+            <div class="panel">
+                <h3>🧪 Inventory</h3>
+                <div id="inventory" style="font-size: 12px; color: #999;">Empty</div>
             </div>
 
-            <div class="shop-item">
-                <h3>❤️ Max HP</h3>
-                <p>Increase maximum HP by 30.</p>
-                <button id="healthBtn" onclick="window.buy('health')">
-                    60 Gold
-                </button>
+            <div class="panel">
+                <h3>📜 Combat Log</h3>
+                <div id="combatLog" style="font-size: 11px;"></div>
             </div>
-
-            <div class="shop-item">
-                <h3>⚡ Speed</h3>
-                <p>Increase movement speed by 25.</p>
-                <button id="speedBtn" onclick="window.buy('speed')">
-                    50 Gold
-                </button>
-            </div>
-
-            <div class="shop-item">
-                <h3>🔥 Shot Speed</h3>
-                <p>Increase fire rate by 5%.</p>
-                <button id="shotsBtn" onclick="window.buy('shotspeed')">
-                    40 Gold
-                </button>
-            </div>
-
-            <div class="shop-item">
-                <h3>🛡️ Armor</h3>
-                <p>Reduce damage taken by 5%.</p>
-                <button id="armorBtn" onclick="window.buy('armor')">
-                    45 Gold
-                </button>
-            </div>
-
         </div>
-
-        <button id="continueShop">
-            Continue Dungeon
-        </button>
-
-        <p style="font-size:12px;color:#777">
-            Press E to continue
-        </p>
-
     </div>
-</div>
 
-<!-- DEATH -->
-<div id="death" class="overlay hidden">
-    <div class="panel">
-
-        <h2>💀 You Died</h2>
-
-        <div id="deathText"></div>
-
-        <button id="restart">
-            Try Again
-        </button>
-
+    <div id="modal" class="modal hidden">
+        <div class="modal-content">
+            <h2 id="modalTitle"></h2>
+            <div id="modalBody"></div>
+            <div id="modalActions" class="modal-actions"></div>
+        </div>
     </div>
-</div>
 
-</div>
-
-<div id="help">
-    Collect gold and clear every enemy in a room, then find the stairs.
-    Shops appear after every 5th cleared room. Difficulty increases every 10 rooms!
-</div>
-
-<script>
-
-const canvas=document.getElementById("c");
-const ctx=canvas.getContext("2d");
-
-const W=1000;
-const H=562;
-const T=24;
-
-const COLS=Math.floor(W/T);
-const ROWS=Math.floor(H/T);
-
-const keys={};
-
-const mouse={
-    x:500,
-    y:281,
-    down:false
-};
-
-let running=false;
-let last=0;
-
-let floor=1;
-let gold=0;
-let kills=0;
-let roomsSurvived=0;
-let totalRooms=1;
-let roomNum=1;
-
-let grid=[];
-let player;
-
-let enemies=[];
-let projectiles=[];
-let particles=[];
-let goldPickups=[];
-
-let stairs=null;
-let chest=null;
-
-let shopOpen=false;
-let boss=null;
-
-// Shop price tracking
-const shopPrices = {
-    heal: 25,
-    damage: 60,
-    health: 60,
-    speed: 50,
-    shotspeed: 40,
-    armor: 45
-};
-
-
-/* =========================
-   INPUT
-========================= */
-
-addEventListener("keydown",e=>{
-
-    keys[e.key.toLowerCase()]=true;
-
-    if(e.code==="Space"){
-        e.preventDefault();
-    }
-
-    if(e.key.toLowerCase()==="e" && shopOpen){
-        continueFromShop();
-    }
-
-});
-
-addEventListener("keyup",e=>{
-    keys[e.key.toLowerCase()]=false;
-});
-
-canvas.addEventListener("mousemove",e=>{
-
-    const r=canvas.getBoundingClientRect();
-
-    mouse.x=(e.clientX-r.left)*W/r.width;
-    mouse.y=(e.clientY-r.top)*H/r.height;
-
-});
-
-canvas.addEventListener("mousedown",()=>{
-    mouse.down=true;
-});
-
-addEventListener("mouseup",()=>{
-    mouse.down=false;
-});
-
-
-/* =========================
-   UTILITIES
-========================= */
-
-function rand(a,b){
-    return Math.random()*(b-a)+a;
-}
-
-function randi(a,b){
-    return Math.floor(rand(a,b+1));
-}
-
-function dist(a,b){
-    return Math.hypot(a.x-b.x,a.y-b.y);
-}
-
-function clamp(v,a,b){
-    return Math.max(a,Math.min(b,v));
-}
-
-function burst(x,y,n){
-
-    for(let i=0;i<n;i++){
-
-        particles.push({
-            x,
-            y,
-            vx:rand(-120,120),
-            vy:rand(-120,120),
-            life:rand(.2,.7)
-        });
-
-    }
-
-}
-
-
-/* =========================
-   OPEN MAZE GENERATION - WIDER PATHS
-========================= */
-
-function generateMaze(){
-
-    grid=Array.from(
-        {length:ROWS},
-        ()=>Array(COLS).fill(1)
-    );
-
-    const stack=[[2,2]];
-
-    grid[2][2]=0;
-
-    while(stack.length){
-
-        const [x,y]=stack[stack.length-1];
-
-        const dirs=[
-            [3,0],
-            [-3,0],
-            [0,3],
-            [0,-3]
-        ].sort(()=>Math.random()-.5);
-
-        let carved=false;
-
-        for(const [dx,dy] of dirs){
-
-            const nx=x+dx;
-            const ny=y+dy;
-
-            if(
-                nx>1 &&
-                nx<COLS-2 &&
-                ny>1 &&
-                ny<ROWS-2 &&
-                grid[ny][nx]
-            ){
-
-                grid[y+dy/3][x+dx/3]=0;
-                grid[y+2*dy/3][x+2*dx/3]=0;
-                grid[ny][nx]=0;
-
-                stack.push([nx,ny]);
-
-                carved=true;
-
-                break;
-            }
-        }
-
-        if(!carved){
-            stack.pop();
-        }
-
-    }
-
-
-    const extraLoops=Math.floor(COLS*ROWS*.18);
-
-    for(let i=0;i<extraLoops;i++){
-
-        const x=randi(2,COLS-3);
-        const y=randi(2,ROWS-3);
-
-        if(!grid[y][x]) continue;
-
-        let openCount=0;
-        for(let yy=y-1;yy<=y+1;yy++){
-            for(let xx=x-1;xx<=x+1;xx++){
-                if(grid[yy]?.[xx]===0) openCount++;
-            }
-        }
-
-        if(openCount>=4){
-            grid[y][x]=0;
-        }
-
-    }
-
-
-    const chambers=Math.floor(COLS*ROWS*.08);
-
-    for(let i=0;i<chambers;i++){
-
-        const x=randi(3,COLS-4);
-        const y=randi(3,ROWS-4);
-
-        const size=randi(3,4);
-
-        let canCreate=true;
-        for(let yy=y-1;yy<y+size;yy++){
-            for(let xx=x-1;xx<x+size;xx++){
-                if(yy>=ROWS || xx>=COLS) canCreate=false;
-            }
-        }
-
-        if(canCreate){
-            for(let yy=y;yy<y+size;yy++){
-                for(let xx=x;xx<x+size;xx++){
-                    if(yy<ROWS && xx<COLS){
-                        grid[yy][xx]=0;
-                    }
-                }
-            }
-        }
-
-    }
-
-}
-
-
-/* =========================
-   FREE CELL
-========================= */
-
-function freeCell(minDist=0){
-
-    let x,y;
-
-    let attempts=0;
-
-    do{
-
-        x=randi(2,COLS-3);
-        y=randi(2,ROWS-3);
-
-        attempts++;
-
-        if(attempts>1000){
-            return {
-                x:T*3,
-                y:T*3
-            };
-        }
-
-    }while(
-        grid[y][x] ||
-        Math.hypot(
-            x*T+T/2-player.x,
-            y*T+T/2-player.y
-        )<minDist
-    );
-
-    return {
-        x:x*T+T/2,
-        y:y*T+T/2
-    };
-
-}
-
-
-/* =========================
-   WALL COLLISION
-========================= */
-
-function isWall(x,y,r=0){
-
-    for(
-        let yy=Math.floor((y-r)/T);
-        yy<=Math.floor((y+r)/T);
-        yy++
-    ){
-
-        for(
-            let xx=Math.floor((x-r)/T);
-            xx<=Math.floor((x+r)/T);
-            xx++
-        ){
-
-            if(
-                yy<0 ||
-                xx<0 ||
-                yy>=ROWS ||
-                xx>=COLS ||
-                grid[yy][xx]
-            ){
-                return true;
-            }
-
-        }
-
-    }
-
-    return false;
-
-}
-
-
-/* =========================
-   MOVEMENT
-========================= */
-
-function moveEntity(o,dx,dy){
-
-    if(!isWall(o.x+dx,o.y,o.r)){
-        o.x+=dx;
-    }
-
-    if(!isWall(o.x,o.y+dy,o.r)){
-        o.y+=dy;
-    }
-
-}
-
-
-/* =========================
-   FLOOR
-========================= */
-
-function makeFloor(){
-
-    generateMaze();
-
-    roomNum=1;
-
-    makeRoom();
-
-}
-
-
-/* =========================
-   MAKE ROOM - NEW MAZE EACH ROOM
-========================= */
-
-function makeRoom(){
-
-    generateMaze();
-
-    enemies=[];
-    projectiles=[];
-    particles=[];
-    goldPickups=[];
-
-    stairs=null;
-    chest=null;
-    boss=null;
-
-    const start={
-        x:T*2.5,
-        y:T*2.5
-    };
-
-    player.x=start.x;
-    player.y=start.y;
-
-    const isBoss=floor%10===0;
-
-    const difficultyTier=Math.floor(totalRooms/10);
-    const difficultyMultiplier=1+difficultyTier*0.15;
-
-
-    if(isBoss){
-
-        boss={
-            x:W-T*3,
-            y:H-T*3,
-            r:28,
-            hp:520+floor*100,
-            maxhp:520+floor*100,
-            speed:75,
-            damage:25+floor*3,
-            shoot:0.9,
-            hit:0
+    <script>
+        // Game Constants
+        const GAME_WIDTH = 10;
+        const GAME_HEIGHT = 10;
+        const ROOMS_PER_FLOOR = 10;
+
+        // Enemy Types
+        const ENEMY_TYPES = {
+            goblin: { hp: 15, dmg: 3, xp: 25, loot: 10, emoji: '👹' },
+            orc: { hp: 30, dmg: 6, xp: 50, loot: 25, emoji: '🗡️' },
+            skeleton: { hp: 20, dmg: 4, xp: 40, loot: 20, emoji: '💀' },
+            dragon: { hp: 100, dmg: 15, xp: 200, loot: 100, emoji: '🐉' }
         };
 
-        enemies=[];
+        // Shop price tracking (50% increase per purchase)
+        const shopPrices = {
+            heal: 25,
+            damage: 60,
+            health: 60,
+            speed: 50,
+            shotspeed: 40,
+            armor: 45
+        };
 
-    }
+        // Game State
+        const gameState = {
+            floor: 1,
+            room: 0,
+            playerX: 0,
+            playerY: 0,
+            playerHP: 100,
+            playerMaxHP: 100,
+            playerLevel: 1,
+            playerXP: 0,
+            playerXPNeeded: 100,
+            gold: 0,
+            inventory: [],
+            maze: [],
+            enemies: [],
+            potions: [],
+            chests: [],
+            stairsX: 0,
+            stairsY: 0,
+            inCombat: false,
+            currentEnemy: null
+        };
 
-    else{
-
-        const baseEnemies = 3+floor+Math.floor(roomNum/2);
-        const n=Math.min(
-            Math.floor(baseEnemies * 1.1 * difficultyMultiplier),
-            16
-        );
-
-        for(let i=0;i<n;i++){
-
-            const pos=freeCell(100);
-
-            const type=
-                floor+roomNum>=5 && Math.random()<.28
-                ?"archer"
-                :Math.random()<.2
-                ?"brute"
-                :"goblin";
-
-            const b={
-                goblin:{
-                    hp:28+floor*6+roomNum*2,
-                    speed:75,
-                    r:11,
-                    damage:7+floor
-                },
-
-                archer:{
-                    hp:24+floor*5,
-                    speed:60,
-                    r:11,
-                    damage:6+floor
-                },
-
-                brute:{
-                    hp:75+floor*12,
-                    speed:50,
-                    r:17,
-                    damage:15+floor*2
-                }
-
-            }[type];
-
-            const scaledStats={
-                hp:Math.ceil(b.hp*difficultyMultiplier),
-                speed:Math.ceil(b.speed*difficultyMultiplier),
-                r:b.r,
-                damage:Math.ceil(b.damage*difficultyMultiplier)
-            };
-
-            enemies.push({
-                x:pos.x,
-                y:pos.y,
-                type,
-                ...scaledStats,
-                maxhp:scaledStats.hp,
-                hit:0,
-                shoot:rand(0.8,2)
-            });
-
+        // Initialize Game
+        function init() {
+            generateFloor();
+            render();
+            setupControls();
         }
 
-
-        if(Math.random()<.55){
-
-            const q=freeCell(130);
-
-            chest={
-                ...q,
-                opened:false
-            };
-
-        }
-
-    }
-
-}
-
-
-/* =========================
-   ATTACK
-========================= */
-
-function attack(){
-
-    if(player.attack>0 || shopOpen){
-        return;
-    }
-
-    player.attack=player.attackCooldown;
-
-    const a=Math.atan2(
-        mouse.y-player.y,
-        mouse.x-player.x
-    );
-
-    projectiles.push({
-
-        x:player.x+Math.cos(a)*18,
-        y:player.y+Math.sin(a)*18,
-
-        vx:Math.cos(a)*460,
-        vy:Math.sin(a)*460,
-
-        r:5,
-        damage:player.damage,
-        life:1
-
-    });
-
-}
-
-
-/* =========================
-   SHOP
-========================= */
-
-function openShop(){
-
-    if(shopOpen){
-        return;
-    }
-
-    shopOpen=true;
-
-    document.getElementById("shop")
-        .classList.remove("hidden");
-
-    updateShop();
-
-}
-
-
-function updateShop(){
-
-    document.getElementById("shopGold").textContent=gold;
-    
-    document.getElementById("healBtn").textContent = Math.round(shopPrices.heal) + " Gold";
-    document.getElementById("damageBtn").textContent = Math.round(shopPrices.damage) + " Gold";
-    document.getElementById("healthBtn").textContent = Math.round(shopPrices.health) + " Gold";
-    document.getElementById("speedBtn").textContent = Math.round(shopPrices.speed) + " Gold";
-    document.getElementById("shotsBtn").textContent = Math.round(shopPrices.shotspeed) + " Gold";
-    document.getElementById("armorBtn").textContent = Math.round(shopPrices.armor) + " Gold";
-
-}
-
-
-function buy(kind){
-
-    const price = Math.round(shopPrices[kind]);
-
-    if(kind==="heal" && gold>=price){
-
-        gold-=price;
-        shopPrices.heal = Math.round(shopPrices.heal * 1.5);
-
-        player.hp=Math.min(
-            player.maxhp,
-            player.hp+50
-        );
-
-    }
-
-    if(kind==="damage" && gold>=price){
-
-        gold-=price;
-        shopPrices.damage = Math.round(shopPrices.damage * 1.5);
-
-        player.damage+=10;
-
-    }
-
-    if(kind==="health" && gold>=price){
-
-        gold-=price;
-        shopPrices.health = Math.round(shopPrices.health * 1.5);
-
-        player.maxhp+=30;
-        player.hp+=30;
-
-    }
-
-    if(kind==="speed" && gold>=price){
-
-        gold-=price;
-        shopPrices.speed = Math.round(shopPrices.speed * 1.5);
-
-        player.speed+=25;
-
-    }
-
-    if(kind==="shotspeed" && gold>=price){
-
-        gold-=price;
-        shopPrices.shotspeed = Math.round(shopPrices.shotspeed * 1.5);
-
-        player.attackCooldown*=0.95;
-
-    }
-
-    if(kind==="armor" && gold>=price){
-
-        gold-=price;
-        shopPrices.armor = Math.round(shopPrices.armor * 1.5);
-
-        player.armorReduction = (player.armorReduction || 0) + 0.05;
-
-    }
-
-    updateShop();
-
-}
-
-window.buy = buy;
-
-function continueFromShop(){
-
-    if(!shopOpen){
-        return;
-    }
-
-    shopOpen=false;
-
-    document.getElementById("shop")
-        .classList.add("hidden");
-
-    roomNum++;
-    totalRooms++;
-
-    if(roomNum>10){
-
-        floor++;
-
-        roomNum=1;
-
-        makeFloor();
-
-    }else{
-
-        makeRoom();
-
-    }
-
-}
-
-
-/* =========================
-   UPDATE
-========================= */
-
-function update(dt){
-
-    if(shopOpen){
-        return;
-    }
-
-
-    let dx=
-        (keys["d"]||keys["arrowright"]?1:0)-
-        (keys["a"]||keys["arrowleft"]?1:0);
-
-    let dy=
-        (keys["s"]||keys["arrowdown"]?1:0)-
-        (keys["w"]||keys["arrowup"]?1:0);
-
-
-    if(dx||dy){
-
-        let l=Math.hypot(dx,dy);
-
-        moveEntity(
-            player,
-            dx/l*player.speed*dt,
-            dy/l*player.speed*dt
-        );
-
-    }
-
-
-    if(mouse.down||keys[" "]){
-        attack();
-    }
-
-
-    player.attack=Math.max(
-        0,
-        player.attack-dt
-    );
-
-    player.inv=Math.max(
-        0,
-        player.inv-dt
-    );
-
-
-    const foes=
-        boss
-        ?[boss,...enemies]
-        :enemies;
-
-
-    for(const e of foes){
-
-        e.hit=Math.max(
-            0,
-            e.hit-dt
-        );
-
-        e.shoot=(e.shoot??1)-dt;
-
-
-        const d=dist(player,e);
-
-        const a=Math.atan2(
-            player.y-e.y,
-            player.x-e.x
-        );
-
-        const isArcher=e.type==="archer";
-
-        if(d<250 && e.shoot<0 && d>50){
-
-            e.shoot=isArcher?1.4:0.8;
-
-            projectiles.push({
-
-                x:e.x,
-                y:e.y,
-
-                vx:Math.cos(a)*300,
-                vy:Math.sin(a)*300,
-
-                r:5,
-                damage:e.damage,
-                life:2,
-                friendly:false
-
-            });
-
-        }
-
-
-        if(d>100){
-
-            moveEntity(e,Math.cos(a)*e.speed*dt,Math.sin(a)*e.speed*dt);
-
-        }
-
-    }
-
-
-    for(let i=projectiles.length-1;i>=0;i--){
-
-        const p=projectiles[i];
-
-        p.x+=p.vx*dt;
-        p.y+=p.vy*dt;
-
-        p.life-=dt;
-
-        if(isWall(p.x,p.y,p.r) || p.life<0){
-
-            projectiles.splice(i,1);
-
-            continue;
-
-        }
-
-
-        if(p.friendly){
-
-            for(let j=0;j<enemies.length;j++){
-
-                const e=enemies[j];
-
-                if(dist(p,e)<p.r+e.r){
-
-                    e.hp-=p.damage;
-                    e.hit=0.1;
-
-                    projectiles.splice(i,1);
-
-                    if(e.hp<=0){
-
-                        enemies.splice(j,1);
-
-                        kills++;
-                        gold+=randi(20,40);
-
-                        burst(e.x,e.y,6);
-
+        // Generate Maze using Recursive Backtracking
+        function generateMaze(width, height) {
+            const maze = Array(height).fill().map(() => Array(width).fill(1));
+            
+            function carve(x, y) {
+                maze[y][x] = 0;
+                const directions = [[0, -2], [2, 0], [0, 2], [-2, 0]].sort(() => Math.random() - 0.5);
+                
+                for (const [dx, dy] of directions) {
+                    const nx = x + dx, ny = y + dy;
+                    if (nx > 0 && nx < width - 1 && ny > 0 && ny < height - 1 && maze[ny][nx] === 1) {
+                        maze[y + dy / 2][x + dx / 2] = 0;
+                        carve(nx, ny);
                     }
-
-                    break;
-
                 }
-
             }
+            
+            carve(1, 1);
+            return maze;
+        }
 
-        }else if(p.friendly===false){
-
-            if(dist(p,player)<p.r+player.r){
-
-                player.hp-=p.damage;
-
-                projectiles.splice(i,1);
-
+        // Generate New Room
+        function generateRoom() {
+            gameState.maze = generateMaze(GAME_WIDTH, GAME_HEIGHT);
+            gameState.enemies = [];
+            gameState.potions = [];
+            gameState.chests = [];
+            gameState.inCombat = false;
+            gameState.currentEnemy = null;
+            
+            // Place player
+            gameState.playerX = 1;
+            gameState.playerY = 1;
+            gameState.maze[gameState.playerY][gameState.playerX] = 0;
+            
+            // Place stairs
+            let stairsPlaced = false;
+            while (!stairsPlaced) {
+                gameState.stairsX = Math.floor(Math.random() * GAME_WIDTH);
+                gameState.stairsY = Math.floor(Math.random() * GAME_HEIGHT);
+                if (gameState.maze[gameState.stairsY][gameState.stairsX] === 0 &&
+                    (gameState.stairsX > 3 || gameState.stairsY > 3)) {
+                    stairsPlaced = true;
+                }
             }
-
-        }
-
-    }
-
-
-    for(let i=particles.length-1;i>=0;i--){
-
-        const p=particles[i];
-
-        p.x+=p.vx*dt;
-        p.y+=p.vy*dt;
-
-        p.vy+=300*dt;
-
-        p.life-=dt;
-
-        if(p.life<0){
-            particles.splice(i,1);
-        }
-
-    }
-
-
-    for(let i=goldPickups.length-1;i>=0;i--){
-
-        const g=goldPickups[i];
-
-        const d=dist(g,player);
-
-        if(d<50){
-
-            gold+=g.amount;
-
-            goldPickups.splice(i,1);
-
-        }else{
-
-            g.x+=Math.cos(g.a)*g.speed*dt;
-            g.y+=Math.sin(g.a)*g.speed*dt;
-
-            g.speed=Math.max(0,g.speed-100*dt);
-
-        }
-
-    }
-
-
-    if(boss){
-
-        const d=dist(boss,player);
-
-        const a=Math.atan2(
-            player.y-boss.y,
-            player.x-boss.x
-        );
-
-        if(boss.shoot<0){
-
-            boss.shoot=0.6;
-
-            for(let i=0;i<8;i++){
-
-                const angle=Math.PI*2*i/8+Math.random()*0.2;
-
-                projectiles.push({
-
-                    x:boss.x,
-                    y:boss.y,
-
-                    vx:Math.cos(angle)*320,
-                    vy:Math.sin(angle)*320,
-
-                    r:5,
-                    damage:boss.damage,
-                    life:2,
-                    friendly:false
-
-                });
-
+            gameState.maze[gameState.stairsY][gameState.stairsX] = 0;
+            
+            // Place enemies (scale with floor)
+            const enemyCount = 2 + gameState.floor;
+            for (let i = 0; i < enemyCount; i++) {
+                let placed = false;
+                while (!placed) {
+                    const x = Math.floor(Math.random() * GAME_WIDTH);
+                    const y = Math.floor(Math.random() * GAME_HEIGHT);
+                    if (gameState.maze[y][x] === 0 && !(x === gameState.playerX && y === gameState.playerY)) {
+                        const typeKeys = Object.keys(ENEMY_TYPES);
+                        const enemyType = typeKeys[Math.floor(Math.random() * typeKeys.length)];
+                        const template = ENEMY_TYPES[enemyType];
+                        gameState.enemies.push({
+                            x, y, type: enemyType,
+                            hp: template.hp + (gameState.floor - 1) * 5,
+                            maxHp: template.hp + (gameState.floor - 1) * 5,
+                            dmg: template.dmg + (gameState.floor - 1)
+                        });
+                        placed = true;
+                    }
+                }
             }
-
-        }
-
-        if(d>100){
-
-            moveEntity(boss,Math.cos(a)*boss.speed*dt,Math.sin(a)*boss.speed*dt);
-
-        }
-
-    }
-
-
-    if(!boss && enemies.length===0){
-
-        if(totalRooms%5===0 && !shopOpen){
-
-            openShop();
-
-        }else{
-
-            roomNum++;
-            totalRooms++;
-
-            if(roomNum>10){
-
-                floor++;
-                roomNum=1;
-                makeFloor();
-
-            }else{
-
-                makeRoom();
-
+            
+            // Place potions
+            const potionCount = 2 + Math.floor(gameState.floor / 2);
+            for (let i = 0; i < potionCount; i++) {
+                let placed = false;
+                while (!placed) {
+                    const x = Math.floor(Math.random() * GAME_WIDTH);
+                    const y = Math.floor(Math.random() * GAME_HEIGHT);
+                    if (gameState.maze[y][x] === 0 && !gameState.enemies.some(e => e.x === x && e.y === y)) {
+                        gameState.potions.push({ x, y, healing: 30 + gameState.floor * 5 });
+                        placed = true;
+                    }
+                }
             }
-
-        }
-
-    }
-
-
-    if(player.hp<=0){
-
-        running=false;
-
-    }
-
-}
-
-
-/* =========================
-   RENDER
-========================= */
-
-function render(){
-
-    ctx.fillStyle="#111";
-    ctx.fillRect(0,0,W,H);
-
-    ctx.fillStyle="rgba(255,107,53,0.1)";
-    for(let y=0;y<ROWS;y++){
-        for(let x=0;x<COLS;x++){
-            if(grid[y][x]){
-                ctx.fillRect(x*T,y*T,T,T);
+            
+            // Place chests
+            const chestCount = 1 + Math.floor(gameState.floor / 3);
+            for (let i = 0; i < chestCount; i++) {
+                let placed = false;
+                while (!placed) {
+                    const x = Math.floor(Math.random() * GAME_WIDTH);
+                    const y = Math.floor(Math.random() * GAME_HEIGHT);
+                    if (gameState.maze[y][x] === 0 && !gameState.enemies.some(e => e.x === x && e.y === y)) {
+                        gameState.chests.push({ x, y, gold: 50 + gameState.floor * 20 });
+                        placed = true;
+                    }
+                }
             }
         }
-    }
 
+        // Generate Floor
+        function generateFloor() {
+            gameState.room = 0;
+            generateRoom();
+            addLog(`📍 Floor ${gameState.floor}, Room ${gameState.room + 1}/${ROOMS_PER_FLOOR}`);
+        }
 
-    for(const p of particles){
+        // Player Movement
+        function movePlayer(dx, dy) {
+            if (gameState.inCombat) {
+                addLog('⚔️ You are in combat!');
+                return;
+            }
+            
+            const newX = gameState.playerX + dx;
+            const newY = gameState.playerY + dy;
+            
+            if (newX < 0 || newX >= GAME_WIDTH || newY < 0 || newY >= GAME_HEIGHT) return;
+            if (gameState.maze[newY][newX] === 1) return;
+            
+            gameState.playerX = newX;
+            gameState.playerY = newY;
+            
+            checkStairs();
+            checkPotion();
+            checkChest();
+            checkEnemy();
+            
+            render();
+        }
 
-        ctx.fillStyle=`rgba(255,200,100,${p.life})`;
-        ctx.fillRect(p.x-2,p.y-2,4,4);
+        // Check if player reached stairs
+        function checkStairs() {
+            if (gameState.playerX === gameState.stairsX && gameState.playerY === gameState.stairsY) {
+                if (gameState.room < ROOMS_PER_FLOOR - 1) {
+                    gameState.room++;
+                    generateRoom();
+                    addLog(`✨ Advanced to Room ${gameState.room + 1}/${ROOMS_PER_FLOOR}`);
+                } else {
+                    completeFloor();
+                }
+            }
+        }
 
-    }
+        // Check for potions
+        function checkPotion() {
+            const potionIndex = gameState.potions.findIndex(p => p.x === gameState.playerX && p.y === gameState.playerY);
+            if (potionIndex !== -1) {
+                const potion = gameState.potions.splice(potionIndex, 1)[0];
+                const oldHP = gameState.playerHP;
+                gameState.playerHP = Math.min(gameState.playerMaxHP, gameState.playerHP + potion.healing);
+                addLog(`🧪 Found potion! Healed ${gameState.playerHP - oldHP} HP`);
+            }
+        }
 
+        // Check for chests
+        function checkChest() {
+            const chestIndex = gameState.chests.findIndex(c => c.x === gameState.playerX && c.y === gameState.playerY);
+            if (chestIndex !== -1) {
+                const chest = gameState.chests.splice(chestIndex, 1)[0];
+                gameState.gold += chest.gold;
+                addLog(`💰 Found treasure! +${chest.gold} gold`);
+            }
+        }
 
-    for(const p of projectiles){
+        // Check for enemies
+        function checkEnemy() {
+            const enemy = gameState.enemies.find(e => e.x === gameState.playerX && e.y === gameState.playerY);
+            if (enemy) {
+                initiatesCombat(enemy);
+            }
+        }
 
-        ctx.fillStyle=p.friendly?"#4a9eff":"#ff6b6b";
-        ctx.fillRect(p.x-p.r,p.y-p.r,p.r*2,p.r*2);
+        // Initiate Combat
+        function initiatesCombat(enemy) {
+            gameState.inCombat = true;
+            gameState.currentEnemy = enemy;
+            addLog(`⚔️ Encountered ${ENEMY_TYPES[enemy.type].emoji} ${enemy.type}!`);
+            showModal(`Battle: ${enemy.type.toUpperCase()}!`,
+                `HP: ${enemy.hp}/${enemy.maxHp}`,
+                [
+                    { text: '⚔️ Attack', onclick: () => playerAttack() },
+                    { text: '🏃 Flee', onclick: () => flee() }
+                ]);
+        }
 
-    }
+        // Player Attack
+        function playerAttack() {
+            const enemy = gameState.currentEnemy;
+            const playerDmg = Math.floor(Math.random() * 8) + 4 + gameState.playerLevel;
+            
+            enemy.hp -= playerDmg;
+            addLog(`⚔️ You dealt ${playerDmg} damage!`);
+            
+            if (enemy.hp <= 0) {
+                defeatEnemy(enemy);
+                closeModal();
+                return;
+            }
+            
+            const enemyDmg = Math.floor(Math.random() * enemy.dmg) + 2;
+            gameState.playerHP -= enemyDmg;
+            addLog(`💥 ${enemy.type} dealt ${enemyDmg} damage!`);
+            
+            if (gameState.playerHP <= 0) {
+                gameOver();
+                closeModal();
+                return;
+            }
+            
+            document.getElementById('modalBody').textContent = `HP: ${enemy.hp}/${enemy.maxHp}\n\nYour HP: ${gameState.playerHP}/${gameState.playerMaxHP}`;
+            render();
+        }
 
+        // Defeat Enemy
+        function defeatEnemy(enemy) {
+            gameState.enemies = gameState.enemies.filter(e => e !== enemy);
+            const template = ENEMY_TYPES[enemy.type];
+            const xpGain = template.xp + (gameState.floor - 1) * 10;
+            const lootGain = template.loot + (gameState.floor - 1) * 5;
+            
+            gameState.playerXP += xpGain;
+            gameState.gold += lootGain;
+            
+            addLog(`🎉 Victory! +${xpGain} XP, +${lootGain} gold`);
+            
+            checkLevelUp();
+            gameState.inCombat = false;
+            gameState.currentEnemy = null;
+            render();
+        }
 
-    for(const e of enemies){
+        // Check Level Up
+        function checkLevelUp() {
+            while (gameState.playerXP >= gameState.playerXPNeeded) {
+                gameState.playerXP -= gameState.playerXPNeeded;
+                gameState.playerLevel++;
+                gameState.playerMaxHP += 20;
+                gameState.playerHP = gameState.playerMaxHP;
+                gameState.playerXPNeeded = Math.floor(gameState.playerXPNeeded * 1.2);
+                addLog(`🌟 LEVEL UP! You are now level ${gameState.playerLevel}!`);
+            }
+        }
 
-        const hpPercent=Math.max(0,e.hp/e.maxhp);
+        // Flee from Combat
+        function flee() {
+            if (Math.random() < 0.5) {
+                gameState.inCombat = false;
+                gameState.currentEnemy = null;
+                closeModal();
+                gameState.playerX--;
+                gameState.playerY--;
+                addLog('🏃 Fled from combat!');
+                render();
+            } else {
+                const enemy = gameState.currentEnemy;
+                const enemyDmg = Math.floor(Math.random() * enemy.dmg) + 2;
+                gameState.playerHP -= enemyDmg;
+                addLog(`❌ Failed to flee! ${enemy.type} dealt ${enemyDmg} damage!`);
+                if (gameState.playerHP <= 0) {
+                    gameOver();
+                    closeModal();
+                }
+            }
+        }
 
-        ctx.fillStyle=`hsl(0,${hpPercent*100}%,50%)`;
-        ctx.beginPath();
-        ctx.arc(e.x,e.y,e.r,0,Math.PI*2);
-        ctx.fill();
+        // Complete Floor
+        function completeFloor() {
+            gameState.floor++;
+            gameState.room = 0;
+            gameState.playerMaxHP += 30;
+            gameState.playerHP = gameState.playerMaxHP;
+            generateFloor();
+            addLog(`🏰 FLOOR COMPLETE! Advancing to floor ${gameState.floor}`);
+        }
 
-        ctx.fillStyle="#fff";
-        ctx.font="10px Arial";
-        ctx.textAlign="center";
-        ctx.fillText("⚔️",e.x,e.y+3);
+        // Game Over
+        function gameOver() {
+            showModal('💀 GAME OVER',
+                `You died on Floor ${gameState.floor}, Room ${gameState.room + 1}\n\nFinal Stats:\nLevel: ${gameState.playerLevel}\nGold: ${gameState.gold}`,
+                [{ text: 'Restart', onclick: () => restart() }]);
+        }
 
-    }
+        // Restart Game
+        function restart() {
+            gameState.floor = 1;
+            gameState.room = 0;
+            gameState.playerX = 0;
+            gameState.playerY = 0;
+            gameState.playerHP = 100;
+            gameState.playerMaxHP = 100;
+            gameState.playerLevel = 1;
+            gameState.playerXP = 0;
+            gameState.playerXPNeeded = 100;
+            gameState.gold = 0;
+            gameState.inventory = [];
+            gameState.inCombat = false;
+            gameState.currentEnemy = null;
+            document.getElementById('combatLog').innerHTML = '';
+            generateFloor();
+            closeModal();
+            render();
+        }
 
+        // Render Game
+        function render() {
+            updateStats();
+            renderMap();
+            renderInventory();
+        }
 
-    if(boss){
+        // Update Stats Display
+        function updateStats() {
+            document.getElementById('floor').textContent = gameState.floor;
+            document.getElementById('room').textContent = `${gameState.room + 1}/${ROOMS_PER_FLOOR}`;
+            document.getElementById('hp').textContent = Math.max(0, gameState.playerHP);
+            document.getElementById('maxHp').textContent = gameState.playerMaxHP;
+            document.getElementById('level').textContent = gameState.playerLevel;
+            document.getElementById('xp').textContent = gameState.playerXP;
+            document.getElementById('xpNeeded').textContent = gameState.playerXPNeeded;
+            document.getElementById('gold').textContent = gameState.gold;
+        }
 
-        const hpPercent=Math.max(0,boss.hp/boss.maxhp);
+        // Render Map
+        function renderMap() {
+            const mapContainer = document.getElementById('dungeonMap');
+            mapContainer.innerHTML = '';
+            
+            for (let y = 0; y < GAME_HEIGHT; y++) {
+                for (let x = 0; x < GAME_WIDTH; x++) {
+                    const tile = document.createElement('div');
+                    tile.className = 'tile';
+                    
+                    if (gameState.playerX === x && gameState.playerY === y) {
+                        tile.textContent = '🧙';
+                        tile.classList.add('player');
+                    } else if (gameState.maze[y][x] === 1) {
+                        tile.textContent = '█';
+                        tile.classList.add('wall');
+                    } else if (gameState.stairsX === x && gameState.stairsY === y) {
+                        tile.textContent = '🪜';
+                        tile.classList.add('stairs');
+                    } else {
+                        const enemy = gameState.enemies.find(e => e.x === x && e.y === y);
+                        if (enemy) {
+                            tile.textContent = ENEMY_TYPES[enemy.type].emoji;
+                            tile.classList.add('enemy', enemy.type);
+                        } else if (gameState.potions.some(p => p.x === x && p.y === y)) {
+                            tile.textContent = '🧪';
+                            tile.classList.add('potion');
+                        } else if (gameState.chests.some(c => c.x === x && c.y === y)) {
+                            tile.textContent = '📦';
+                            tile.classList.add('chest');
+                        } else {
+                            tile.textContent = '·';
+                            tile.classList.add('floor');
+                        }
+                    }
+                    
+                    mapContainer.appendChild(tile);
+                }
+            }
+        }
 
-        ctx.fillStyle=`hsl(40,100%,${50+hpPercent*30}%)`;
-        ctx.beginPath();
-        ctx.arc(boss.x,boss.y,boss.r,0,Math.PI*2);
-        ctx.fill();
+        // Render Inventory
+        function renderInventory() {
+            const invContainer = document.getElementById('inventory');
+            invContainer.innerHTML = '';
+            
+            if (gameState.inventory.length === 0) {
+                invContainer.innerHTML = '<div style="color: #999;">Empty</div>';
+                return;
+            }
+            
+            gameState.inventory.forEach((item) => {
+                const itemEl = document.createElement('div');
+                itemEl.style.padding = '5px 0';
+                itemEl.innerHTML = `<span style="color: #4a9eff; font-weight: bold;">${item.name}</span><br><span style="color: #aaa; font-size: 11px;">${item.stats}</span>`;
+                invContainer.appendChild(itemEl);
+            });
+        }
 
-        ctx.fillStyle="#000";
-        ctx.font="bold 16px Arial";
-        ctx.textAlign="center";
-        ctx.fillText("👑",boss.x,boss.y+6);
+        // Add Log Entry
+        function addLog(message) {
+            const log = document.getElementById('combatLog');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            if (message.includes('💥') || message.includes('⚔️')) entry.classList.add('damage');
+            if (message.includes('🧪')) entry.classList.add('heal');
+            if (message.includes('🎉')) entry.classList.add('victory');
+            if (message.includes('🌟')) entry.classList.add('level-up');
+            
+            entry.textContent = message;
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+        }
 
-    }
+        // Modal Functions
+        function showModal(title, body, actions = []) {
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalBody').textContent = body;
+            const actionsDiv = document.getElementById('modalActions');
+            actionsDiv.innerHTML = '';
+            
+            actions.forEach(action => {
+                const btn = document.createElement('button');
+                btn.className = 'modal-btn primary';
+                btn.textContent = action.text;
+                btn.onclick = action.onclick;
+                actionsDiv.appendChild(btn);
+            });
+            
+            document.getElementById('modal').classList.remove('hidden');
+        }
 
+        function closeModal() {
+            document.getElementById('modal').classList.add('hidden');
+        }
 
-    for(const g of goldPickups){
+        // Setup Controls
+        function setupControls() {
+            document.getElementById('moveUp').onclick = () => movePlayer(0, -1);
+            document.getElementById('moveLeft').onclick = () => movePlayer(-1, 0);
+            document.getElementById('moveDown').onclick = () => movePlayer(0, 1);
+            document.getElementById('moveRight').onclick = () => movePlayer(1, 0);
+            
+            document.getElementById('attackBtn').onclick = () => {
+                if (gameState.inCombat) playerAttack();
+                else addLog('⚔️ No enemies nearby!');
+            };
+            
+            document.getElementById('useItemBtn').onclick = () => {
+                if (gameState.inventory.length === 0) {
+                    addLog('🧪 No items in inventory!');
+                } else {
+                    addLog('🧪 Item used!');
+                }
+            };
+            
+            document.getElementById('restBtn').onclick = () => {
+                gameState.playerHP = Math.min(gameState.playerMaxHP, gameState.playerHP + 20);
+                addLog(`😴 Rested. HP: ${gameState.playerHP}/${gameState.playerMaxHP}`);
+                render();
+            };
+            
+            document.addEventListener('keydown', (e) => {
+                if (document.getElementById('modal').classList.contains('hidden')) {
+                    switch(e.key) {
+                        case 'ArrowUp': case 'w': case 'W': movePlayer(0, -1); break;
+                        case 'ArrowLeft': case 'a': case 'A': movePlayer(-1, 0); break;
+                        case 'ArrowDown': case 's': case 'S': movePlayer(0, 1); break;
+                        case 'ArrowRight': case 'd': case 'D': movePlayer(1, 0); break;
+                    }
+                }
+            });
+            
+            document.getElementById('modal').onclick = (e) => {
+                if (e.target === document.getElementById('modal')) closeModal();
+            };
+        }
 
-        ctx.fillStyle="#f3c969";
-        ctx.beginPath();
-        ctx.arc(g.x,g.y,3,0,Math.PI*2);
-        ctx.fill();
-
-    }
-
-
-    ctx.fillStyle="#4a9eff";
-    ctx.beginPath();
-    ctx.arc(player.x,player.y,player.r,0,Math.PI*2);
-    ctx.fill();
-
-
-    ctx.fillStyle="#fff";
-    ctx.font="12px Arial";
-    ctx.textAlign="center";
-    ctx.fillText("🧙",player.x,player.y+3);
-
-
-    ctx.fillStyle="#f3c969";
-    ctx.font="16px Arial";
-    ctx.textAlign="left";
-    ctx.fillText(`Floor: ${floor} | Room: ${roomNum}/10 | Gold: ${gold} | HP: ${Math.max(0,Math.floor(player.hp))}/${Math.floor(player.maxhp)}`,10,20);
-
-}
-
-
-/* =========================
-   GAME LOOP
-========================= */
-
-function frame(now){
-
-    const dt=Math.min((now-last)/1000,0.016);
-    last=now;
-
-    if(running){
-
-        update(dt);
-        render();
-
-    }
-
-    requestAnimationFrame(frame);
-
-}
-
-
-/* =========================
-   INITIALIZE
-========================= */
-
-function startGame(){
-
-    document.getElementById("menu").classList.add("hidden");
-
-    floor=1;
-    gold=0;
-    kills=0;
-    roomsSurvived=0;
-    totalRooms=1;
-    roomNum=1;
-
-    player={
-        x:W/2,
-        y:H/2,
-        r:12,
-        hp:100,
-        maxhp:100,
-        speed:200,
-        damage:25,
-        attack:0,
-        attackCooldown:0.2,
-        inv:0
-    };
-
-    enemies=[];
-    projectiles=[];
-    particles=[];
-    goldPickups=[];
-
-    makeFloor();
-
-    running=true;
-
-}
-
-document.getElementById("start").onclick=startGame;
-document.getElementById("continueShop").onclick=continueFromShop;
-document.getElementById("restart").onclick=()=>{
-    document.getElementById("death").classList.add("hidden");
-    startGame();
-};
-
-requestAnimationFrame(frame);
-
-</script>
-
+        // Start Game
+        init();
+    </script>
 </body>
 </html>
