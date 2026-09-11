@@ -385,7 +385,7 @@ function burst(x,y,n){
 
 
 /* =========================
-   OPEN MAZE GENERATION
+   OPEN MAZE GENERATION - WIDER PATHS
 ========================= */
 
 function generateMaze(){
@@ -397,21 +397,22 @@ function generateMaze(){
 
     /*
        Randomized DFS creates the base connected maze.
+       Using larger step size for wider corridors.
     */
 
-    const stack=[[1,1]];
+    const stack=[[2,2]];
 
-    grid[1][1]=0;
+    grid[2][2]=0;
 
     while(stack.length){
 
         const [x,y]=stack[stack.length-1];
 
         const dirs=[
-            [2,0],
-            [-2,0],
-            [0,2],
-            [0,-2]
+            [3,0],
+            [-3,0],
+            [0,3],
+            [0,-3]
         ].sort(()=>Math.random()-.5);
 
         let carved=false;
@@ -422,14 +423,16 @@ function generateMaze(){
             const ny=y+dy;
 
             if(
-                nx>0 &&
-                nx<COLS-1 &&
-                ny>0 &&
-                ny<ROWS-1 &&
+                nx>1 &&
+                nx<COLS-2 &&
+                ny>1 &&
+                ny<ROWS-2 &&
                 grid[ny][nx]
             ){
 
-                grid[y+dy/2][x+dx/2]=0;
+                // Carve path between cells
+                grid[y+dy/3][x+dx/3]=0;
+                grid[y+2*dy/3][x+2*dx/3]=0;
                 grid[ny][nx]=0;
 
                 stack.push([nx,ny]);
@@ -448,31 +451,27 @@ function generateMaze(){
 
 
     /*
-       OPEN UP THE MAZE
-
-       Previously this only opened a small number
-       of walls. This version removes many more walls,
-       making larger rooms and more alternate routes.
+       OPEN UP THE MAZE - Create wider rooms and chambers
     */
 
-    const extraLoops=Math.floor(COLS*ROWS*.12);
+    const extraLoops=Math.floor(COLS*ROWS*.18);
 
     for(let i=0;i<extraLoops;i++){
 
-        const x=randi(1,COLS-2);
-        const y=randi(1,ROWS-2);
+        const x=randi(2,COLS-3);
+        const y=randi(2,ROWS-3);
 
         if(!grid[y][x]) continue;
 
-        const horizontal=
-            grid[y][x-1]===0 &&
-            grid[y][x+1]===0;
+        // Check if surrounded by open space
+        let openCount=0;
+        for(let yy=y-1;yy<=y+1;yy++){
+            for(let xx=x-1;xx<=x+1;xx++){
+                if(grid[yy]?.[xx]===0) openCount++;
+            }
+        }
 
-        const vertical=
-            grid[y-1]?.[x]===0 &&
-            grid[y+1]?.[x]===0;
-
-        if(horizontal || vertical){
+        if(openCount>=4){
             grid[y][x]=0;
         }
 
@@ -480,35 +479,34 @@ function generateMaze(){
 
 
     /*
-       Additional random openings make the dungeon
-       feel more like rooms instead of a tight maze.
+       Create larger open chambers and rooms
     */
 
-    const roomOpenings=Math.floor(COLS*ROWS*.045);
+    const chambers=Math.floor(COLS*ROWS*.08);
 
-    for(let i=0;i<roomOpenings;i++){
+    for(let i=0;i<chambers;i++){
 
-        const x=randi(2,COLS-3);
-        const y=randi(2,ROWS-3);
+        const x=randi(3,COLS-4);
+        const y=randi(3,ROWS-4);
 
-        if(grid[y][x]){
+        // Create 3x3 or 4x4 chamber
+        const size=randi(3,4);
 
-            let nearby=0;
+        let canCreate=true;
+        for(let yy=y-1;yy<y+size;yy++){
+            for(let xx=x-1;xx<x+size;xx++){
+                if(yy>=ROWS || xx>=COLS) canCreate=false;
+            }
+        }
 
-            for(let yy=-1;yy<=1;yy++){
-                for(let xx=-1;xx<=1;xx++){
-
-                    if(grid[y+yy]?.[x+xx]===0){
-                        nearby++;
+        if(canCreate){
+            for(let yy=y;yy<y+size;yy++){
+                for(let xx=x;xx<x+size;xx++){
+                    if(yy<ROWS && xx<COLS){
+                        grid[yy][xx]=0;
                     }
-
                 }
             }
-
-            if(nearby>=3){
-                grid[y][x]=0;
-            }
-
         }
 
     }
@@ -528,15 +526,15 @@ function freeCell(minDist=0){
 
     do{
 
-        x=randi(1,COLS-2);
-        y=randi(1,ROWS-2);
+        x=randi(2,COLS-3);
+        y=randi(2,ROWS-3);
 
         attempts++;
 
         if(attempts>1000){
             return {
-                x:T*2.5,
-                y:T*2.5
+                x:T*3,
+                y:T*3
             };
         }
 
@@ -626,10 +624,13 @@ function makeFloor(){
 
 
 /* =========================
-   MAKE ROOM
+   MAKE ROOM - NEW MAZE EACH ROOM
 ========================= */
 
 function makeRoom(){
+
+    // Generate NEW maze for every room
+    generateMaze();
 
     enemies=[];
     projectiles=[];
@@ -640,8 +641,8 @@ function makeRoom(){
     boss=null;
 
     const start={
-        x:T*1.5,
-        y:T*1.5
+        x:T*2.5,
+        y:T*2.5
     };
 
     player.x=start.x;
@@ -655,12 +656,12 @@ function makeRoom(){
     if(isBoss){
 
         boss={
-            x:W-T*2,
-            y:H-T*2,
+            x:W-T*3,
+            y:H-T*3,
             r:28,
             hp:420+floor*80,
             maxhp:420+floor*80,
-            speed:45,
+            speed:65,
             damage:20+floor*2,
             shoot:1.2,
             hit:0
@@ -693,21 +694,21 @@ function makeRoom(){
             const b={
                 goblin:{
                     hp:28+floor*6+roomNum*2,
-                    speed:58,
+                    speed:75,
                     r:11,
                     damage:7+floor
                 },
 
                 archer:{
                     hp:24+floor*5,
-                    speed:38,
+                    speed:60,
                     r:11,
                     damage:6+floor
                 },
 
                 brute:{
                     hp:75+floor*12,
-                    speed:27,
+                    speed:50,
                     r:17,
                     damage:15+floor*2
                 }
@@ -963,24 +964,20 @@ function update(dt){
         );
 
 
-        /* BOSS */
+        /* BOSS - Always moves and shoots */
 
         if(e===boss){
 
-            if(d>90){
-
-                moveEntity(
-                    e,
-                    Math.cos(a)*e.speed*dt,
-                    Math.sin(a)*e.speed*dt
-                );
-
-            }
-
+            // Always chase player
+            moveEntity(
+                e,
+                Math.cos(a)*e.speed*dt,
+                Math.sin(a)*e.speed*dt
+            );
 
             if(
                 e.shoot<=0 &&
-                d<450
+                d<500
             ){
 
                 projectiles.push({
@@ -1005,11 +1002,12 @@ function update(dt){
         }
 
 
-        /* ARCHER */
+        /* ARCHER - Always moves and shoots */
 
         else if(e.type==="archer"){
 
-            if(d>260){
+            // Always move towards player, maintain distance
+            if(d>200){
 
                 moveEntity(
                     e,
@@ -1019,7 +1017,7 @@ function update(dt){
 
             }
 
-            else if(d<170){
+            else if(d<140){
 
                 moveEntity(
                     e,
@@ -1032,7 +1030,7 @@ function update(dt){
 
             if(
                 e.shoot<=0 &&
-                d<430
+                d<450
             ){
 
                 projectiles.push({
@@ -1057,10 +1055,11 @@ function update(dt){
         }
 
 
-        /* MELEE */
+        /* MELEE - Always moves toward player */
 
         else{
 
+            // Constantly move toward player
             moveEntity(
                 e,
                 Math.cos(a)*e.speed*dt,
